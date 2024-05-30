@@ -1,0 +1,3 @@
+﻿  main.cpp
+D:\school-second-year\C++ Second year\projects\raytracing\raytracing-main\raytracing-main\main.cpp(69,12): error C2146: syntax error: missing ';' before identifier 'sphere2'
+D:\school-second-year\C++ Second year\projects\raytracing\raytracing-main\raytracing-main\main.cpp(69,12): error C3861: 'sphere2': identifier not found
