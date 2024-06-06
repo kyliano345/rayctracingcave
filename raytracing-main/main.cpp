@@ -67,12 +67,15 @@ int main() {
     sphere.set_material(bardrix::material(0.3, 1, 0.8, 20));
 
 
-    //light
-    std::vector<bardrix::light> lights;
-    bardrix::point3 position(1, 1.4, 0);
-    bardrix::color color = bardrix::color::white();
-    double intensity = 5.0; 
-    lights.push_back(bardrix::light::light(position, intensity, color));
+    std::vector<bardrix::light> lights{
+    bardrix::light({2,1,1}, 1, bardrix::color::cyan()),
+    bardrix::light({-2,-1,-1}, 5, bardrix::color::yellow()),
+    bardrix::light({1,1,0}, 2, bardrix::color::cyan()),
+    };
+
+
+
+
 
     window.on_paint = [&camera, &sphere, &lights](bardrix::window* window, std::vector<uint32_t>& buffer) {
         // Draw the sphere
@@ -84,12 +87,25 @@ int main() {
                 bardrix::color color = bardrix::color::black();
 
                 // If the ray intersects the sphere, paint the pixel white
-                if (intersection.has_value())
-                    color = bardrix::color::blue() * calculate_light_intensity(sphere, lights[0], camera, intersection.value());
-
+                
+                if (intersection.has_value()) {
+                    double intensity = 0;
+                    bardrix::color tmpcolor;
+                    for (bardrix::light& l : lights) {
+                        intensity += calculate_light_intensity(sphere, l, camera, intersection.value());
+                        tmpcolor = tmpcolor.blended(l.color);
+                    }
+                    color = tmpcolor * intensity;
+                }
                 buffer[y * window->get_width() + x] = color.argb(); // ARGB is the format used by Windows API
             }
         }
+        //lights[0].position += 0.1;
+        lights[1].position.x += 0.1; 
+        lights[1].position.y += 0.05;
+        lights[1].position.z -= 0.1;
+        lights[1].set_intensity(lights[1].get_intensity() + 0.1);
+        window->redraw();
     };
 
     window.on_resize = [&camera](bardrix::window* window, int width, int height) {
