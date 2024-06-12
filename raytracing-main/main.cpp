@@ -17,7 +17,7 @@
 #include <bardrix/camera.h>
 
 
-///beeep beep beep
+///beeep beep beep beepo beepo beepo
 /// \brief Calculates the light intensity at a given intersection point
 /// \param shape The shape that was intersected
 /// \param light The light source
