@@ -9,6 +9,7 @@
 #include <bardrix/color.h>
 
 #undef UNICODE // This is for the window class to work with char* instead of wchar_t* (unicode)
+#define NOMINMAX // This is to avoid the min and max macros from windows.h
 #include <Windows.h>
 
 #include <cstdint>
@@ -32,7 +33,7 @@ namespace bardrix {
         /// \brief The on_paint function, called when the window needs to be painted.
         /// \param window The original window that needs to be painted.
         /// \param buffer The buffer to paint to where the format used is AARRGGBB.
-        /// \example window.on_paint = [](bardrix::window* window, std::vector<uint32_t>& buffer) {    \n
+        /// \example window.on_paint = [](bardrix::window* window, std::vector<uint32_t>& buffer) {             \n
         ///         for (unsigned int & i : buffer) {                                                           \n
         ///             bardrix::color red = bardrix::color::magenta();                                         \n
         ///             i = red.a() << 24 | red.r() << 16 | red.g() << 8 | red.b();                             \n
@@ -43,6 +44,16 @@ namespace bardrix {
         /// \brief The on_close function, called when the window is closed.
         /// \param window The window that was closed.
         std::function<void(bardrix::window* window)> on_close;
+
+        /// \brief The on_keydown function, called when a key is pressed.
+        /// \param window The window that was pressed.
+        /// \param wparam The key that was pressed.
+        /// \example window.on_keydown = [](bardrix::window* window, WPARAM wparam) {     \n
+        ///         if (wparam == VK_ESCAPE) {                                            \n
+        ///             window->close();                                                   \n
+        ///         }                                                                     \n
+        ///     };
+        std::function<void(bardrix::window* window, WPARAM)> on_keydown;
 
     protected:
         /// \brief The title of the window.
@@ -55,9 +66,9 @@ namespace bardrix {
         HWND hwnd_{};
 
         /// \brief Buffers for swapping between displaying and drawing.
-        std::vector<uint32_t> back_buffer, front_buffer;
+        std::vector<uint32_t> back_buffer_, front_buffer_;
         /// \brief The bitmap info for the window.
-        BITMAPINFO bmi = {};
+        BITMAPINFO bmi_ = {};
 
     public:
         /// \brief Constructor for the window class.
@@ -95,6 +106,10 @@ namespace bardrix {
         /// \brief Refreshes this specific window.
         /// \note This will call the on_paint function.
         void redraw() const;
+
+        /// \brief Closes the window.
+        /// \note This will call the on_close function.
+        void close() const;
 
         /// \brief Runs all windows.
         static void run();
