@@ -25,8 +25,10 @@
 /// \param intersection_point The intersection point of an object
 /// \return The light intensity at the intersection point
 /// \example double intensity = calculate_light_intensity(shape, light, camera, intersection_point);
-double calculate_light_intensity(const bardrix::shape& shape, const bardrix::light& light, const bardrix::camera& camera,
-    const bardrix::point3& intersection_point) {
+double calculate_light_intensity(const bardrix::shape& shape, const bardrix::light& light,
+                                 const bardrix::camera& camera,
+                                 const bardrix::point3& intersection_point)
+{
     const bardrix::vector3 light_intersection_vector = intersection_point.vector_to(light.position).normalized();
 
     // Angle between the normal and the light intersection vector
@@ -37,7 +39,7 @@ double calculate_light_intensity(const bardrix::shape& shape, const bardrix::lig
 
     // Specular reflection
     bardrix::vector3 reflection = bardrix::quaternion::mirror(light_intersection_vector,
-        shape.normal_at(intersection_point));
+                                                              shape.normal_at(intersection_point));
     double specular_angle = reflection.dot(camera.position.vector_to(intersection_point).normalized());
     double specular = std::pow(specular_angle, shape.get_material().get_shininess());
 
@@ -51,74 +53,100 @@ double calculate_light_intensity(const bardrix::shape& shape, const bardrix::lig
 }
 
 
-
-
-int main() {
+int main()
+{
     int width = 600;
     int height = 600;
     // Create a window
     bardrix::window window("Raytracing", width, height);
 
     // Create a camera
-    bardrix::camera camera = bardrix::camera({0,0,0}, {0,0,1}, width, height, 60);
+    bardrix::camera camera = bardrix::camera({0, 0, 0}, {0, 0, 1}, width, height, 60);
 
     // Create a sphere
     std::vector<sphere> spheres;
     sphere s1(1.0, bardrix::point3(0.0, 0.0, 3.0));
     s1.set_material(bardrix::material(0.3, 1, 0.8, 20));
 
-    sphere s2(1.0, { 0.0, 0.0, -3.0 });
+    sphere s2(1.0, {0.0, 0.0, -3.0});
     s2.set_material(bardrix::material(0.3, 1, 0.8, 20, bardrix::color::magenta()));
+
+    sphere s3(1.5, {2.0, 2.0, 4.0});
+    s3.set_material(bardrix::material(0.3, 1, 0.8, 20, bardrix::color::white()));
+
+
     spheres.push_back(s1);
     spheres.push_back(s2);
-
+    spheres.push_back(s3);
 
     std::vector<bardrix::light> lights{
-    bardrix::light({2,1,1}, 1, bardrix::color::cyan()),
-    bardrix::light({-2,-1,-1}, 5, bardrix::color::yellow()),
-    bardrix::light({1,1,0}, 2, bardrix::color::cyan()),
+        bardrix::light({2, 1, 1}, 1, bardrix::color::cyan()),
+        bardrix::light({-2, -1, -1}, 5, bardrix::color::yellow()),
+        bardrix::light({1, 1, 0}, 2, bardrix::color::cyan()),
     };
 
 
-
-
-
-    window.on_paint = [&camera, &spheres, &lights](bardrix::window* window, std::vector<uint32_t>& buffer) {
+    window.on_paint = [&camera, &spheres, &lights](bardrix::window* window, std::vector<uint32_t>& buffer)
+    {
         // Draw the sphere
-        for (int y = 0; y < window->get_height(); y++) {
-            for (int x = 0; x < window->get_width(); x++) {
+        for (int y = 0; y < window->get_height(); y++)
+        {
+            for (int x = 0; x < window->get_width(); x++)
+            {
                 bardrix::ray ray = *camera.shoot_ray(x, y, 10);
 
                 bardrix::color color = bardrix::color::black();
 
-                for (sphere s : spheres) {
+                for (sphere& s : spheres)
+                {
                     auto intersection = s.intersection(ray);
-                    if (intersection.has_value()) {
+                    if (intersection.has_value())
+                    {
                         bardrix::color tmpcolor = bardrix::color::black();
-                        for (bardrix::light& l : lights) {
-                            double intensity = calculate_light_intensity(s, l, camera, intersection.value());
-                            tmpcolor += s.get_material().color.blended(l.color) * intensity;
+                        for (bardrix::light& l : lights)
+                        {
+                            bool is_lightblocked = false;
+                            bardrix::ray shadow = {l.position, l.position.vector_to(intersection.value()) - bardrix::epsilon};
+                            for (sphere& s2 : spheres)
+                            {
+                                if (&s == &s2)
+                                    continue;
+                                
+                                auto intersectionshadow = s2.intersection(shadow);
+                                if (intersectionshadow.has_value())
+                                {
+                                    is_lightblocked = true;
+                                    break;
+                                }
+                            }
+                            if (!is_lightblocked)
+                            {
+                                double intensity = calculate_light_intensity(s, l, camera, intersection.value());
+                                tmpcolor += s.get_material().color.blended(l.color) * intensity;
+                            }
                         }
                         color = tmpcolor;
                     }
                 }
                 // If the ray intersects the sphere, paint the pixel white
-                
+
                 buffer[y * window->get_width() + x] = color.argb(); // ARGB is the format used by Windows API
             }
         }
         //lights[0].position += 0.1;
-        lights[1].position.x += 0.1; 
-        lights[1].position.y += 0.05;
-        lights[1].position.z -= 0.1;
-        lights[1].set_intensity(lights[1].get_intensity() + 0.1);
+        lights[1].position.x += 0.01;
+        lights[1].position.y += 0.005;
+        lights[1].position.z -= 0.01;
+     //   lights[2].set_intensity(lights[2].get_intensity() + 0.01);
         window->redraw();
     };
 
-    window.on_keydown = [&camera](bardrix::window* window, WPARAM key) {
+    window.on_keydown = [&camera](bardrix::window* window, WPARAM key)
+    {
         constexpr double movement_speed = 0.1; // In units
         constexpr double rotation_speed = 2; // In degrees
-        switch (key) {
+        switch (key)
+        {
         case VK_ESCAPE:
             window->close();
             break;
@@ -126,13 +154,13 @@ int main() {
             camera.position += camera.get_direction() * movement_speed;
             break;
         case 0x41: // A
-            camera.position -= camera.get_direction().cross({ 0,1,0 }).normalized() * movement_speed;
+            camera.position -= camera.get_direction().cross({0, 1, 0}).normalized() * movement_speed;
             break;
         case 0x53: // S
             camera.position -= camera.get_direction() * movement_speed;
             break;
         case 0x44: // D
-            camera.position += camera.get_direction().cross({ 0,1,0 }).normalized() * movement_speed;
+            camera.position += camera.get_direction().cross({0, 1, 0}).normalized() * movement_speed;
             break;
         case VK_SHIFT:
             camera.position -= {0, movement_speed, 0};
@@ -141,24 +169,29 @@ int main() {
             camera.position += {0, movement_speed, 0};
             break;
         case VK_UP:
-            camera.set_direction(bardrix::quaternion::rotate_degrees(camera.get_direction(), { 1,0,0 }, rotation_speed));
+            camera.set_direction(
+                bardrix::quaternion::rotate_degrees(camera.get_direction(), {1, 0, 0}, rotation_speed));
             break;
         case VK_DOWN:
-            camera.set_direction(bardrix::quaternion::rotate_degrees(camera.get_direction(), { 1,0,0 }, -rotation_speed));
+            camera.set_direction(
+                bardrix::quaternion::rotate_degrees(camera.get_direction(), {1, 0, 0}, -rotation_speed));
             break;
         case VK_LEFT:
-            camera.set_direction(bardrix::quaternion::rotate_degrees(camera.get_direction(), { 0,1,0 }, -rotation_speed));
+            camera.set_direction(
+                bardrix::quaternion::rotate_degrees(camera.get_direction(), {0, 1, 0}, -rotation_speed));
             break;
         case VK_RIGHT:
-            camera.set_direction(bardrix::quaternion::rotate_degrees(camera.get_direction(), { 0,1,0 }, rotation_speed));
+            camera.set_direction(
+                bardrix::quaternion::rotate_degrees(camera.get_direction(), {0, 1, 0}, rotation_speed));
             break;
         default:
             return;
         }
         window->redraw(); // Redraw the window (calls on_paint)
-        };
+    };
 
-    window.on_resize = [&camera](bardrix::window* window, int width, int height) {
+    window.on_resize = [&camera](bardrix::window* window, int width, int height)
+    {
         // Resize the camera
         camera.set_width(width);
         camera.set_height(height);
@@ -171,7 +204,8 @@ int main() {
     int screen_height = GetSystemMetrics(SM_CYSCREEN);
 
     // Show the window in the center of the screen
-    if (!window.show(screen_width / 2 - width / 2, screen_height / 2 - height / 2)) {
+    if (!window.show(screen_width / 2 - width / 2, screen_height / 2 - height / 2))
+    {
         std::cout << GetLastError() << std::endl;
         return -1;
     }
